@@ -88,6 +88,17 @@ test('the built addon has no Polestar name left, keeps the licence and credits, 
 		assert.deepEqual(R.leftovers(out), []);
 		for (const f of ['LICENSE', 'LICENSE-EXCEPTION.md', 'FORK.txt']) assert.ok(fs.existsSync(path.join(out, 'PolestarPlus', f)), f);
 		assert.ok(fs.existsSync(path.join(out, 'PolestarPlus_Nav', 'CREDITS.md')), 'third-party credits kept');
+		// The nav pages hold raw zlib bytes in Lua strings: past the renames, every byte stays.
+		const pages = fs.readdirSync(path.join(ROOT, 'addon')).filter((n) => /^Polestar_Nav_R\d/.test(n));
+		assert.ok(pages.length > 0, 'nav page folders in addon/');
+		let binary = 0;
+		for (const n of pages) {
+			const src = fs.readFileSync(path.join(ROOT, 'addon', n, 'Pages.lua'));
+			const got = fs.readFileSync(path.join(out, R.folderName(n), 'Pages.lua'));
+			if (R.readText(path.join(ROOT, 'addon', n, 'Pages.lua')).encoding === 'latin1') binary++;
+			assert.ok(Buffer.from(got.toString('latin1').replace(/PolestarPlus/g, 'Polestar'), 'latin1').equals(src), `${n}/Pages.lua bytes kept`);
+		}
+		assert.ok(binary > 0, 'some page holds bytes that are not UTF-8');
 		const mine = R.claims(out, folders);
 		const theirs = R.claims(path.join(ROOT, 'addon'), fs.readdirSync(path.join(ROOT, 'addon')).filter((n) => /^Polestar(_|$)/.test(n) && !R.EXCLUDE.has(n)));
 		// /way and /rl are taken by whoever loads first, at run time; nothing else is shared.

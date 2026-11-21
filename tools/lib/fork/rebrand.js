@@ -223,6 +223,21 @@ function extras(root) {
 	return { Polestar: { LICENSE: path.join(root, 'LICENSE'), 'LICENSE-EXCEPTION.md': path.join(root, 'LICENSE-EXCEPTION.md') } };
 }
 
+// A file's text and the encoding that writes its bytes back unchanged: UTF-8
+// when it is valid UTF-8, else latin1, one char per byte (the nav pages hold
+// raw zlib bytes in Lua strings; reading them as UTF-8 turns every invalid
+// byte into U+FFFD and the game can't decompress them). The renames are ASCII,
+// so latin1 keeps every other byte as it was.
+const UTF8 = new TextDecoder('utf-8', { fatal: true });
+function readText(file) {
+	const buf = fs.readFileSync(file);
+	try {
+		return { text: UTF8.decode(buf), encoding: 'utf8' };
+	} catch {
+		return { text: buf.toString('latin1'), encoding: 'latin1' };
+	}
+}
+
 function build({ addonDir, dataDir, outDir, root, tracked, log = () => {} }) {
 	const folders = sources({ addonDir, dataDir, tracked });
 	fs.rmSync(outDir, { recursive: true, force: true });
@@ -237,7 +252,8 @@ function build({ addonDir, dataDir, outDir, root, tracked, log = () => {} }) {
 			const to = path.join(dest, relOut);
 			fs.mkdirSync(path.dirname(to), { recursive: true });
 			if (TEXT.has(path.extname(rel).toLowerCase())) {
-				fs.writeFileSync(to, rebrandFile(path.join(folderName(name), relOut), fs.readFileSync(from, 'utf8')));
+				const { text, encoding } = readText(from);
+				fs.writeFileSync(to, rebrandFile(path.join(folderName(name), relOut), text), encoding);
 			} else {
 				fs.copyFileSync(from, to);
 			}
@@ -430,4 +446,4 @@ function split(shared) {
 	return { real, guarded };
 }
 
-module.exports = { BRAND, EXCLUDE, RUNTIME_GUARDED, split, tokens, display, luaStrings, toc, rebrandFile, folderName, sources, build, leftovers, claims, collisions, walk };
+module.exports = { BRAND, EXCLUDE, readText, RUNTIME_GUARDED, split, tokens, display, luaStrings, toc, rebrandFile, folderName, sources, build, leftovers, claims, collisions, walk };
