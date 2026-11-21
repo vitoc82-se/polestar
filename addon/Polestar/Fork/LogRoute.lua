@@ -158,6 +158,13 @@ function LR.Plan()
 		end
 	end
 	last = leftOut
+	-- Kept in the character's saved variables too, so the list can be read
+	-- outside the game after a /reload (quest id, title, reason).
+	if ns.CharState then
+		local kept = {}
+		for i, o in ipairs(leftOut) do kept[i] = { quest = o.quest, title = o.title, why = o.why, text = o.text } end
+		ns.CharState().forkLogLeftOut = kept
+	end
 	local zones, seen = 0, {}
 	for _, s in ipairs(stops) do
 		if not seen[s.inP.map] then
