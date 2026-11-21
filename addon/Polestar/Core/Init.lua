@@ -1527,7 +1527,14 @@ if not gamepadUI then
 	SLASH_POLESTAR3 = "/ps"
 	SlashCmdList.POLESTAR = ns.RunCommand
 end
-if not gamepadUI and not SLASH_POLESTAR_RL1 then
+-- Another addon's /rl (a second copy of Polestar: the fork, FORK.md) keeps it.
+local function slashTaken(word)
+	for key, value in pairs(_G) do
+		if type(key) == "string" and key:find("^SLASH_") and type(value) == "string" and value:lower() == word then return true end
+	end
+	return false
+end
+if not gamepadUI and not SLASH_POLESTAR_RL1 and not slashTaken("/rl") then
 	SLASH_POLESTAR_RL1 = "/rl"
 	SlashCmdList.POLESTAR_RL = function()
 		if C_UI and C_UI.Reload then

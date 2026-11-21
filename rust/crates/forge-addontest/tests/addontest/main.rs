@@ -235,6 +235,8 @@ mod faction_guides;
 #[path = "flight-map-notice.rs"]
 mod flight_map_notice;
 mod gamepad;
+#[path = "fork-routes.rs"]
+mod fork_routes;
 #[path = "gamepad-ui.rs"]
 mod gamepad_ui;
 mod gear;

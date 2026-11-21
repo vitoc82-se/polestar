@@ -1,3 +1,11 @@
+> **This is Polestar Plus, a fork of [Polestar](https://github.com/fitzforge/polestar)** by the Polestar
+> authors, under the same licence (GPL-3.0 with the additional permissions in
+> [LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md); third-party credits in [THIRD_PARTY.md](THIRD_PARTY.md)).
+> It is renamed so it installs and loads next to Polestar (folders `PolestarPlus*`, slash command `/psf`)
+> and adds two guides: **Route my whole log** (`/psf emptylog`) and the **zone completionist**
+> (`/psf zone <name>`). How the fork is built and kept in step with upstream: [FORK.md](FORK.md).
+> Report problems with the fork here, not to Polestar. The rest of this README is Polestar's own.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">

@@ -1,0 +1,7 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Polestar Plus, the fork (FORK.md): the quest log route and the zone completionist. -->
+	<Script file="RouteKit.lua"/>
+	<Script file="LogRoute.lua"/>
+	<Script file="ZoneQuests.lua"/>
+	<Script file="ZonePicker.lua"/>
+</Ui>

@@ -30,6 +30,12 @@
 -- the switch and Guide me stay in reach under it. A title or a second line
 -- cut short reads whole in the row's tooltip.
 --
+-- Polestar Plus (the fork, FORK.md): under the list, in every mode but the
+-- guide end's, "Route my whole log" (Fork/LogRoute.lua: every quest in the
+-- log, objectives and turn-ins, in one route) and "Zone quests" (the zone
+-- completionist's list, Fork/ZonePicker.lua); and UI.ShowQuestRoom("logroute"):
+-- the quests that route leaves out, each with why, a grey one with Abandon.
+--
 -- Built on first use; colours are Theme tokens only.
 
 local ADDON, ns = ...
@@ -112,8 +118,18 @@ local function build()
 	end, { height = 28 })
 	F.GuideMe:Hide()
 	-- Between the two lists: the finished quests while Make room is shown, and back.
-	F.Switch = W.Button(F, "", function() UI.ShowQuestRoom(F.psMode ~= "carried" and "carried" or nil) end, { ghost = true, height = 28 })
+	F.Switch = W.Button(F, "", function() UI.ShowQuestRoom((F.psMode ~= "carried" and F.psMode ~= "logroute") and "carried" or nil) end, { ghost = true, height = 28 })
 	F.Switch:Hide()
+	-- Fork: the whole log in one route, and the zone list.
+	F.LogRoute = W.Button(F, L["Route my whole log"], function()
+		if ns.ForkLogRoute then ns.ForkLogRoute.Open() end
+		if F.psMode ~= "logroute" and not (ns.ForkLogRoute and #ns.ForkLogRoute.LeftOut() > 0) then F:Hide() end
+	end, { height = BUTTON_H })
+	F.LogRoute:Hide()
+	F.Zones = W.Button(F, L["Zone quests"], function()
+		if UI.ShowZonePicker then UI.ShowZonePicker() end
+	end, { ghost = true, height = BUTTON_H })
+	F.Zones:Hide()
 
 	F.rows = {}
 	F:SetScript("OnShow", function(self) Anim.To(self, "alpha", 0, 1, Anim.FAST, "out") end)
@@ -198,8 +214,15 @@ function UI.LayoutQuestRoom()
 	local mode = F.psMode
 	local carried = mode == "carried"
 	local ending = mode == "later" or mode == "offroute"
+	local logroute = mode == "logroute"
 	local list
-	if ending then
+	if logroute then
+		-- Fork: what the whole-log route leaves out (Fork/LogRoute.lua).
+		F.Title:SetText(L["Not in your quest log route"])
+		list = ns.ForkLogRoute and ns.ForkLogRoute.LeftOut() or {}
+		F.Hint:SetText(#list == 0 and L["The route takes every quest in your log."]
+			or L["Route my whole log can't take these: here is why. A grey one gives almost no XP any more: abandon it if you won't pass by."])
+	elseif ending then
 		local title, hint
 		title, list, hint = endList(mode, F.psGuide)
 		F.Title:SetText(title)
@@ -234,7 +257,10 @@ function UI.LayoutQuestRoom()
 		r:SetPoint("TOPLEFT", F.List.Child, "TOPLEFT", 0, -y)
 		r:SetWidth(rowW)
 		r.Title:SetText(u.title or ("#" .. u.quest))
-		if mode == "later" then
+		if logroute then
+			r.Why:SetText(u.text or "")
+			r.Abandon:SetShown(u.grey and true or false)
+		elseif mode == "later" then
 			-- A later guide hands it in: kept, no Abandon.
 			r.Why:SetText(laterWhy(u))
 			r.Abandon:Hide()
@@ -260,9 +286,13 @@ function UI.LayoutQuestRoom()
 	end
 	for i = #(list or {}) + 1, #F.rows do F.rows[i]:Hide() end
 	-- Make room: the finished quests no route hands in, when there are any.
-	local finished = not (carried or ending) and ns.RoutePlan.Carried() or nil
-	local switch = carried or (finished ~= nil and #finished > 0)
+	local finished = not (carried or ending or logroute) and ns.RoutePlan.Carried() or nil
+	local switch = carried or logroute or (finished ~= nil and #finished > 0)
 	local foot = ((carried and guided) or switch) and (BUTTON_H + ROW_GAP) or 0
+	-- Fork: Route my whole log and Zone quests, a row of their own under the rest.
+	local forkRow = not ending and ns.ForkLogRoute ~= nil
+	local forkAt = foot
+	if forkRow then foot = foot + BUTTON_H + ROW_GAP end
 	-- The list: every row, at most MAX_ROWS of them in view, and no taller
 	-- than the screen leaves room for (MARGIN above and below the window).
 	local screen = UIParent:GetHeight() or 0
@@ -278,8 +308,14 @@ function UI.LayoutQuestRoom()
 	F.GuideMe:ClearAllPoints()
 	F.GuideMe:SetPoint("TOPRIGHT", F, "TOPRIGHT", -PAD, -under)
 	F.GuideMe:SetShown(carried and guided)
+	F.LogRoute:ClearAllPoints()
+	F.LogRoute:SetPoint("TOPRIGHT", F, "TOPRIGHT", -PAD, -(under + forkAt))
+	F.LogRoute:SetShown(forkRow and #(ns.Compat.GetLogQuests() or {}) > 0)
+	F.Zones:ClearAllPoints()
+	F.Zones:SetPoint("TOPLEFT", F, "TOPLEFT", PAD - 8, -(under + forkAt))
+	F.Zones:SetShown(forkRow and UI.ShowZonePicker ~= nil)
 	if switch then
-		W.SetButtonText(F.Switch, carried and L["Make room in your quest log"] or L["Finished quests you're still carrying (%d)"]:format(#finished))
+		W.SetButtonText(F.Switch, (carried or logroute) and L["Make room in your quest log"] or L["Finished quests you're still carrying (%d)"]:format(#finished))
 		F.Switch:ClearAllPoints()
 		F.Switch:SetPoint("TOPLEFT", F, "TOPLEFT", PAD - 8, -under)
 	end
@@ -287,7 +323,7 @@ function UI.LayoutQuestRoom()
 	F:SetHeight(under + foot + PAD - 6)
 end
 
--- mode: nil (make room in the quest log), "carried", or the guide's end's
+-- mode: nil (make room in the quest log), "carried", "logroute" (the fork's), or the guide's end's
 -- "later" and "offroute" (guideId: the guide that ended; nil: the active tab's).
 function UI.ShowQuestRoom(mode, guideId)
 	if not F then build() end
